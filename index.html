@@ -12,7 +12,15 @@
 </head>
 
 <body>
-    <div class="board"></div>
+    <div class="stats">
+      <button class="stop-button">Stop Sim</button>
+      <span class="slider-value">100ms</span>
+      <input type="range" min="1" max="1000" value="100" class="slider">
+      <span class="won stat"></span>
+      <span class="lost stat"></span>
+      <span class="win-perc stat"></span>
+    </div>
+    <div class="board-cont"></div>
     <script
     src="https://code.jquery.com/jquery-3.5.0.min.js"
     integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ="

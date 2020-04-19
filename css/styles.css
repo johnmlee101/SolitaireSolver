@@ -19,6 +19,16 @@
     margin: 1em;
 }
 
+.stat {
+    margin-right: 10px;
+}
+
+.slider-value {
+    display: inline-block;
+    width: 50px;
+    text-align: center;
+}
+
 .playBoard::before {
     content: 'Game Board';
 }
@@ -29,6 +39,18 @@
 
 .hand::before {
     content: 'Hand';
+}
+
+.won::before {
+    content: 'Wins:';
+}
+
+.lost::before {
+    content: 'Losses:';
+}
+
+.win-perc::before {
+    content: 'Win Percentage:';
 }
 
 body {

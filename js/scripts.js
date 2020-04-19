@@ -68,7 +68,8 @@ function setupBoardWithHand(cards) {
  * @param {Array} board
  */
 function balanceBoard(board) {
-    for (let i = 0; i < board.length; i++) {
+    // Start from the right side to the left so we can reveal larger hidden stacks faster.
+    for (let i = board.length - 1; i >= 0; i--) {
         if (board[i].length == 0) continue;
         // Go to the top of the stack to find the topmost card.
         stackPosition = getStackStartPosition(board, i);
@@ -79,7 +80,7 @@ function balanceBoard(board) {
 
             // If the board is zero, only move if we're a king.
             if (board[j].length == 0) {
-                if (board[i][stackPosition].value == 13) {
+                if (board[i][stackPosition].value == 13 && stackPosition != 0) {
                     board[j] = board[j].concat(board[i].splice(stackPosition));
                     break;
                 }
@@ -104,7 +105,8 @@ function balanceBoard(board) {
  * @param {Array} winBoard
  */
 function addIncrementalCardToWinBoard(board, winBoard) {
-    for (let i = 0; i < board.length; i++) {
+    // Again start from the right to prioritize revealing hidden cards faster
+    for (let i = board.length - 1; i >= 0; i--) {
         if (board[i].length == 0) continue;
         const lastCard = board[i][board[i].length - 1];
 
@@ -139,6 +141,7 @@ function addPlayerHandToBoard(board, playerHand, winBoard) {
                 if (playerHand[handI].value == 13) {
                     playerHand[handI].visible = true;
                     board[i] = board[i].concat(playerHand.splice(handI, 1));
+                    break;
                 }
                 continue;
             }
@@ -150,7 +153,7 @@ function addPlayerHandToBoard(board, playerHand, winBoard) {
             ((lastCard.value - 1) == playerHand[handI].value)) {
                 playerHand[handI].visible = true;
                 board[i] = board[i].concat(playerHand.splice(handI, 1));
-                continue;
+                break;
             }
         }
 
@@ -164,6 +167,7 @@ function addPlayerHandToBoard(board, playerHand, winBoard) {
             (winBoard[playerHand[handI].type].slice(-1)[0].value == (playerHand[handI].value - 1))) {
             playerHand[handI].visible = true;
             winBoard[playerHand[handI].type] = winBoard[playerHand[handI].type].concat(playerHand.splice(handI, 1));
+            break;
         }
     }
 }
@@ -221,7 +225,7 @@ function printBoard(board, winBoard, hand) {
     $board.append($hand);
 
     // Append it all to the body.
-    $('body').html($board);
+    $('.board-cont').html($board);
 }
 
 /**
@@ -266,44 +270,125 @@ function isSameColor(card1, card2) {
     return false;
 }
 
+function setEventHandlers() {
+    $('.stop-button').click(() => {
+        if (stopped) {
+            startInterval();
+        } else {
+            clearInterval(interval);
+        }
+        stopped = !stopped;
+    });
+
+    $(document).on('input', '.slider', function() {
+        REFRESH_INTERVAL = $(this).val();
+        $('.slider-value').html(REFRESH_INTERVAL + 'ms');
+        clearInterval(interval);
+        startInterval();
+    });
+}
+
+/**
+ * Sets a new game up.
+ */
+function init() {
+    // Populate our hand.
+    cardsInHand = createCards();
+    // Shuffle it.
+    shuffleCards(cardsInHand);
+    // Populate the board.
+    board = setupBoardWithHand(cardsInHand);
+    // create the empty winBoard
+    winBoard = {
+        1:[],
+        2:[],
+        3:[],
+        4:[]
+    };
+
+    // Print the initial starting board.
+    printBoard(board, winBoard, cardsInHand);
+}
+
+/**
+ * Starts the game tick.
+ */
+function startInterval() {
+    interval = setInterval(() => {
+        // Save our cloned board so we can see if we're actively changing it.
+        const clonedBoard = JSON.parse(JSON.stringify(board));
+        const clonedHand = JSON.parse(JSON.stringify(cardsInHand));
+
+        // Perform our algorithms
+        balanceBoard(board);
+        addPlayerHandToBoard(board, cardsInHand, winBoard);
+        addIncrementalCardToWinBoard(board, winBoard);
+
+        // @todo add support to swap similar numbers to potentially shake up the winboard additions.
+
+        printBoard(board, winBoard, cardsInHand);
+
+        // If the board hasn't changed, we're probably in a end state. Let's stop the interval for performance reasons.
+        if (JSON.stringify(board) == JSON.stringify(clonedBoard) &&
+            JSON.stringify(cardsInHand) == JSON.stringify(clonedHand)) {
+            clearInterval(interval);
+            updateStats(board, winBoard, cardsInHand);
+            init();
+            startInterval();
+        }
+    }, REFRESH_INTERVAL);
+}
+
+/**
+ * Checks if we won the game and updates the stats accordingly.
+ *
+ * @param {Array} board
+ * @param {Array} winBoard
+ * @param {Array} hand
+ */
+function updateStats(board, winBoard, hand) {
+    function isEmpty(array) {
+        return Array.isArray(array) && (array.length == 0 || array.every(isEmpty));
+    }
+
+    const isHandEmpty = hand.length === 0;
+    const isBoardEmpty = isEmpty(board);
+
+    if (isHandEmpty && isBoardEmpty) {
+        won += 1;
+    } else {
+        lost += 1;
+    }
+
+    winPercent = won / Math.max(won + lost, 1);
+    printStats();
+}
+
+/**
+ * Updates the DOM to show the new stats.
+ */
+function printStats() {
+    $('.won').html(won);
+    $('.lost').html(lost);
+    $('.win-perc').html(Math.round(winPercent * 10000) / 100 + '%');
+}
+
 
 /**
  * --------------------------------------------
  * ------------ MAIN GAME LOGIC ---------------
  * --------------------------------------------
  */
+let REFRESH_INTERVAL = 100;
 
-// Populate our hand.
-var cardsInHand = createCards();
-// Shuffle it.
-shuffleCards(cardsInHand);
-// Populate the board.
-let board = setupBoardWithHand(cardsInHand);
-// create the empty winBoard
-let winBoard = {
-    1:[],
-    2:[],
-    3:[],
-    4:[]
-};
-
-// Print the initial starting board.
-printBoard(board, winBoard, cardsInHand);
-
+let cardsInHand;
+let board;
+let winBoard;
 let interval;
+let won = 0, lost = 0, winPercent = 0;
+let stopped = false;
 // Go off of an interval
-interval = setInterval(() => {
-    // Save our cloned board so we can see if we're actively changing it.
-    const clonedBoard = JSON.parse(JSON.stringify(board));
-
-    // Perform our algorithms
-    balanceBoard(board);
-    addPlayerHandToBoard(board, cardsInHand, winBoard);
-    addIncrementalCardToWinBoard(board, winBoard);
-
-    // @todo add support to swap similar numbers to potentially shake up the winboard additions.
-    printBoard(board, winBoard, cardsInHand);
-
-    // If the board hasn't changed, we're probably in a end state. Let's stop the interval for performance reasons.
-    if (JSON.stringify(board) == JSON.stringify(clonedBoard)) clearInterval(interval);
-}, 250);
+setEventHandlers();
+init();
+printStats();
+startInterval();
