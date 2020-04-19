@@ -30,3 +30,7 @@
 .hand::before {
     content: 'Hand';
 }
+
+body {
+    font-family: monospace;
+}
