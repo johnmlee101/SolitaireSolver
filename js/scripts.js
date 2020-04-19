@@ -147,7 +147,7 @@ function addPlayerHandToBoard(board, playerHand, winBoard) {
 /* ------- UTIL FUNCTIONS --------- */
 
 
-function printBoard(board, winBoard) {
+function printBoard(board, winBoard, hand) {
     const $board = $('<div class="board"/>');
     const $playBoard = $('<div class="playBoard"/>');
     for (let i = 0; i < board.length; i++) {
@@ -174,6 +174,18 @@ function printBoard(board, winBoard) {
     }
 
     $board.append($winBoard);
+
+    const $hand = $('<div class="hand"/>');
+    const $col = $('<div class="col" />');
+    for (let i = 0; i < hand.length; i++) {
+        const $item = $('<div class="item"/>').html(CARD_VALUES[hand[i].value] + ' ' + CARD_TYPES[hand[i].type]);
+        $item.toggleClass('red', hand[i].type % 2 == 0);
+        $col.append($item);
+
+    }
+
+    $hand.append($col);
+    $board.append($hand);
 
     $('body').html($board);
 }
@@ -226,13 +238,16 @@ let winBoard = {
     4:[]
 };
 
-printBoard(board, winBoard);
+printBoard(board, winBoard, cardsInHand);
 
-setInterval(() => {
+let interval;
+interval = setInterval(() => {
+    const clonedBoard = JSON.parse(JSON.stringify(board));
     balanceBoard(board);
     addPlayerHandToBoard(board, cardsInHand, winBoard);
     addIncrementalCardToWinBoard(board, winBoard);
 
     // @todo add support to swap similar numbers to potentially shake up the winboard additions.
-    printBoard(board, winBoard);
+    printBoard(board, winBoard, cardsInHand);
+    if (JSON.stringify(board) == JSON.stringify(clonedBoard)) clearInterval(interval);
 }, 250);

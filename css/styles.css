@@ -1,8 +1,32 @@
 .col {
+    display: inline-block;
+    border: solid 1px black;
     float: left;
     padding: 1em;
+    min-width: 1em;
+    min-height: 1em;
+    margin: 1em
 }
 
 .red {
     color: red;
+}
+
+.playBoard, .winBoard {
+    display: inline-block;
+    padding: 1em;
+    border: solid 1px black;
+    margin: 1em;
+}
+
+.playBoard::before {
+    content: 'Game Board';
+}
+
+.winBoard::before {
+    content: 'Win Board';
+}
+
+.hand::before {
+    content: 'Hand';
 }
