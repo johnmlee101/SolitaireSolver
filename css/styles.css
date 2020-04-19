@@ -12,7 +12,7 @@
     color: red;
 }
 
-.playBoard, .winBoard {
+.playBoard, .winBoard, .hand {
     display: inline-block;
     padding: 1em;
     border: solid 1px black;
