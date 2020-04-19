@@ -8,6 +8,7 @@ CARD_TYPES = {1: "SPADE", 2: "HEART", 3: "CLUB", 4: "DIAMOND"};
  */
 function createCards() {
     let cards = [];
+    // Creates all permutations of values and types into our hand.
     for (let [typeKey] of Object.entries(CARD_TYPES)) {
         for (let [valueKey] of Object.entries(CARD_VALUES)) {
             cards.push({
@@ -50,6 +51,7 @@ function setupBoardWithHand(cards) {
     let cardCount = 1;
     let board = [[],[],[],[],[],[],[]];
     for (let i = 0; i < board.length; i++) {
+        // Add more cards to each column as we go through it.
         let remainingCardsInSlot = cardCount++;
         while(remainingCardsInSlot-- > 0) {
             const poppedCard = cards.pop();
@@ -61,6 +63,10 @@ function setupBoardWithHand(cards) {
     return board;
 }
 
+/**
+ * The goal of this is to grow the visible stacks together and reveal more cards.
+ * @param {Array} board
+ */
 function balanceBoard(board) {
     for (let i = 0; i < board.length; i++) {
         if (board[i].length == 0) continue;
@@ -78,6 +84,7 @@ function balanceBoard(board) {
                     break;
                 }
             } else {
+                // Otherwise check if the colors are stackable and we're in descending order.
                 const lastCard = board[j][board[j].length - 1];
                 if (!isSameColor(lastCard, board[i][stackPosition]) &&
                     ((lastCard.value - 1) == board[i][stackPosition].value)) {
@@ -91,11 +98,17 @@ function balanceBoard(board) {
     }
 }
 
+/**
+ * Looks for any cards we can add to the win board and does so.
+ * @param {Array} board
+ * @param {Array} winBoard
+ */
 function addIncrementalCardToWinBoard(board, winBoard) {
     for (let i = 0; i < board.length; i++) {
         if (board[i].length == 0) continue;
         const lastCard = board[i][board[i].length - 1];
 
+        // Skip if the winboard is empty and we're not an Ace.
         if (winBoard[lastCard.type].length == 0 && lastCard.value != 1) {
             continue;
         }
@@ -111,18 +124,28 @@ function addIncrementalCardToWinBoard(board, winBoard) {
     return board;
 }
 
+/**
+ * Looks at the player hand and goes through each one to see if we can take action (not vegas or 3 at a time style)
+ * @param {Array} board
+ * @param {Array} playerHand
+ * @param {Array} winBoard
+ */
 function addPlayerHandToBoard(board, playerHand, winBoard) {
     for (let handI = playerHand.length - 1; handI >= 0; handI--) {
         // Check each line of the board and add if possible.
         for (let i = 0; i < board.length; i++) {
             if (board[i].length == 0) {
+                // If we're a king, do something about it.
                 if (playerHand[handI].value == 13) {
                     playerHand[handI].visible = true;
                     board[i] = board[i].concat(playerHand.splice(handI, 1));
                 }
                 continue;
             }
+
             lastCard = board[i].slice(-1)[0];
+
+            // Add to column if we're the right color and descending.
             if (!isSameColor(lastCard, playerHand[handI]) &&
             ((lastCard.value - 1) == playerHand[handI].value)) {
                 playerHand[handI].visible = true;
@@ -136,6 +159,7 @@ function addPlayerHandToBoard(board, playerHand, winBoard) {
             continue;
         }
 
+        // Add to the winBoard if we're ascending and/or an Ace on an empty board.
         if ((winBoard[playerHand[handI].type].length == 0 && playerHand[handI].value == 1) ||
             (winBoard[playerHand[handI].type].slice(-1)[0].value == (playerHand[handI].value - 1))) {
             playerHand[handI].visible = true;
@@ -146,9 +170,16 @@ function addPlayerHandToBoard(board, playerHand, winBoard) {
 
 /* ------- UTIL FUNCTIONS --------- */
 
-
+/**
+ * Displays to the DOM our current game state.
+ * @param {Array} board
+ * @param {Array} winBoard
+ * @param {Array} hand
+ */
 function printBoard(board, winBoard, hand) {
     const $board = $('<div class="board"/>');
+
+    // ------ PLAY BOARD --------
     const $playBoard = $('<div class="playBoard"/>');
     for (let i = 0; i < board.length; i++) {
         const $col = $('<div class="col" />');
@@ -162,6 +193,7 @@ function printBoard(board, winBoard, hand) {
 
     $board.append($playBoard);
 
+    // ------ WIN BOARD --------
     const $winBoard = $('<div class="winBoard"/>');
     for (let [i, value] of Object.entries(winBoard)) {
         const $col = $('<div class="col" />');
@@ -175,6 +207,7 @@ function printBoard(board, winBoard, hand) {
 
     $board.append($winBoard);
 
+    // ------ HAND --------
     const $hand = $('<div class="hand"/>');
     const $col = $('<div class="col" />');
     for (let i = 0; i < hand.length; i++) {
@@ -187,11 +220,15 @@ function printBoard(board, winBoard, hand) {
     $hand.append($col);
     $board.append($hand);
 
+    // Append it all to the body.
     $('body').html($board);
 }
 
-
-
+/**
+ * Finds the last card and forces it to be visible (we modified this column most likely)
+ * @param {Array} board
+ * @param {Integer} line
+ */
 function markLastCardVisible(board, line) {
     if (board[line].length == 0) return;
     board[line][board[line].length - 1].visible = true;
@@ -215,6 +252,11 @@ function getStackStartPosition(board, line) {
     return stackPosition;
 }
 
+/**
+ * Looks to see if the cards are the same color for stackability.
+ * @param {Object} card1
+ * @param {Object} card2
+ */
 function isSameColor(card1, card2) {
     card1IsBlack = ['1', '3'].includes(card1.type);
     card2IsBlack = ['1', '3'].includes(card2.type);
@@ -223,6 +265,13 @@ function isSameColor(card1, card2) {
 
     return false;
 }
+
+
+/**
+ * --------------------------------------------
+ * ------------ MAIN GAME LOGIC ---------------
+ * --------------------------------------------
+ */
 
 // Populate our hand.
 var cardsInHand = createCards();
@@ -238,16 +287,23 @@ let winBoard = {
     4:[]
 };
 
+// Print the initial starting board.
 printBoard(board, winBoard, cardsInHand);
 
 let interval;
+// Go off of an interval
 interval = setInterval(() => {
+    // Save our cloned board so we can see if we're actively changing it.
     const clonedBoard = JSON.parse(JSON.stringify(board));
+
+    // Perform our algorithms
     balanceBoard(board);
     addPlayerHandToBoard(board, cardsInHand, winBoard);
     addIncrementalCardToWinBoard(board, winBoard);
 
     // @todo add support to swap similar numbers to potentially shake up the winboard additions.
     printBoard(board, winBoard, cardsInHand);
+
+    // If the board hasn't changed, we're probably in a end state. Let's stop the interval for performance reasons.
     if (JSON.stringify(board) == JSON.stringify(clonedBoard)) clearInterval(interval);
 }, 250);
